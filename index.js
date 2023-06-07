@@ -23,6 +23,27 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+
+    const userCollection = client.db('sportMaster').collection('users')
+
+    //user activity
+    app.post('/users', async(req, res) =>{
+      const user = req.body;
+      console.log(user);
+      const query = {email: user.email}
+      const existingUser = await userCollection.findOne(query);
+      if(existingUser){
+        return res.send({message: 'Already Exists'})
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
+
+    app.get('/users', async(req, res) =>{
+      const result = await userCollection.find().toArray();
+      res.send(result)
+    })
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
@@ -30,7 +51,7 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
