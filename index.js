@@ -60,6 +60,31 @@ async function run() {
       res.send({token})
     })
 
+    // verify Admin 
+    const verifyAdmin = async (req, res, next) =>{
+      const email = async(req, res, next) =>{
+        const email = req.decoded.email;
+        const query = {email: email}
+        const user = await userCollection.findOne(query);
+        if(user?.role !== 'admin'){
+          return res.status(403).send({error: true, message: 'Access Denied'})
+        }
+        next();
+      }
+    }
+
+    const verifyInstructor = async (req, res, next) =>{
+      const email = async(req, res, next) =>{
+        const email = req.decoded.email;
+        const query = {email: email}
+        const user = await userCollection.findOne(query);
+        if(user?.role !== 'instructor'){
+          return res.status(403).send({error: true, message: 'Access Denied'})
+        }
+        next();
+      }
+    }
+
 
     //user activity
     app.post('/users', async(req, res) =>{
@@ -74,9 +99,43 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/users', async(req, res) =>{
+    app.get('/users', authenticateToken, async(req, res) =>{
       const result = await userCollection.find().toArray();
       res.send(result)
+    })
+
+    app.get('/users/:email', authenticateToken, async(req, res) =>{
+      const email = req. params.email;
+      const query = {email: email}
+      const result = await userCollection.findOne(query);
+      res.send(result)
+    })
+
+    app.get('/users/admin/:email', authenticateToken, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false })
+      }
+
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      res.send(result);
+    })
+
+
+    app.get('/users/instructor/:email', authenticateToken, verifyInstructor, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false })
+      }
+
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === 'instructor' }
+      res.send(result);
     })
 
     app.patch('/users/admin/:id', async (req, res) => {
