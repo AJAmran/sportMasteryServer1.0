@@ -24,13 +24,11 @@ const client = new MongoClient(uri, {
   }
 });
 
-const secretKey = process.env.SECRET;
-console.log(secretKey)
+const secretKey = process.env.SECRET; 
 
 //Middleware to verify JWT token
 const authenticateToken = (req, res, next) =>{
   const authHeader = req.headers.authorization;
-  console.log(authHeader);
 
   if(!authHeader){
     return res.status(401).send({error: true, message: 'Unauthorized access'})
@@ -41,7 +39,7 @@ const authenticateToken = (req, res, next) =>{
 
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err){
-      return res.status(403).send({error:true, message: 'Unauthorized access'})
+      return res.status(401).send({error:true, message: 'Unauthorized access'})
     };
     req.decoded = decoded
     next();
@@ -52,6 +50,7 @@ async function run() {
   try {
 
     const userCollection = client.db('sportMaster').collection('users')
+    const classCollection = client.db('sportMaster').collection('classes')
 
     //JWT Post
     app.post('/create-jwt', (req, res) =>{
@@ -85,11 +84,16 @@ async function run() {
       }
     }
 
+    // class activity 
+    app.post('/classes', async(req, res) =>{
+      const item = req.body;
+      const result = await classCollection.insertOne(item)
+      res.send(result);
+    })
 
     //user activity
     app.post('/users', async(req, res) =>{
       const user = req.body;
-      console.log(user);
       const query = {email: user.email}
       const existingUser = await userCollection.findOne(query);
       if(existingUser){
