@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000
 
@@ -8,6 +9,8 @@ const port = process.env.PORT || 5000
 // middleware
 app.use(cors());
 app.use(express.json())
+
+
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.129hgrr.mongodb.net/?retryWrites=true&w=majority`;
@@ -21,10 +24,42 @@ const client = new MongoClient(uri, {
   }
 });
 
+const secretKey = process.env.SECRET;
+console.log(secretKey)
+
+//Middleware to verify JWT token
+const authenticateToken = (req, res, next) =>{
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+
+  if(!authHeader){
+    return res.status(401).send({error: true, message: 'Unauthorized access'})
+  }
+  const token = authHeader.split(' ')[1];
+
+  if (token == null) return res.sendStatus(401);
+
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err){
+      return res.status(403).send({error:true, message: 'Unauthorized access'})
+    };
+    req.decoded = decoded
+    next();
+  });
+}
+
 async function run() {
   try {
 
     const userCollection = client.db('sportMaster').collection('users')
+
+    //JWT Post
+    app.post('/create-jwt', (req, res) =>{
+      const user = req.body;
+      const token = jwt.sign(user, secretKey, {expiresIn: '6h'})
+      res.send({token})
+    })
+
 
     //user activity
     app.post('/users', async(req, res) =>{
