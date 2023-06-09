@@ -110,16 +110,21 @@ async function run() {
     });
 
 
-    app.post('/classes/:id/feedback', async(req, res)=>{
-      const {id} = req.params;
-      const {feedback} = req.body;
-      const query = {_id: new Object(id)};
-      const update = {$set: {
-        feedback
-      }};
-      const result = await classCollection.updateOne(query, update);
-      res.send(result)
-    })
+    app.post('/classes/:id/feedback', async (req, res) => {
+      const { id } = req.params;
+      const { feedback } = req.body;
+    
+      try {
+        const query = { _id: new ObjectId(id) };
+        const update = { $set: { feedback } };
+    
+        const result = await classCollection.updateOne(query, update);
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating class feedback:", error);
+        res.status(500).send({ error: true, message: "Failed to update class feedback" });
+      }
+    });
 
     //user activity
     app.post("/users", async (req, res) => {
