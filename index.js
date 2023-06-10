@@ -135,6 +135,17 @@ async function run() {
       }
     });
 
+    app.put('/classes/:id/reduce-seats', authenticateToken, async (req, res) => {
+      const id = req.params.id;      
+        const filter = { _id: new ObjectId(id) };
+        const update = { $inc: { availableSeats: -1 } };    
+        const result = await classCollection.updateOne(filter, update);
+        res.send(result);
+    });
+
+
+    
+
     //user activity
     app.post("/users", async (req, res) => {
       const user = req.body;
