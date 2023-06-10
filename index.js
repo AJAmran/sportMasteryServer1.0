@@ -3,6 +3,7 @@ const app = express();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_SERECT);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -51,6 +52,7 @@ async function run() {
   try {
     const userCollection = client.db("sportMaster").collection("users");
     const classCollection = client.db("sportMaster").collection("classes");
+    const paymentCollection = client.db("sportMaster").collection("payments");
 
     //JWT Post
     app.post("/create-jwt", (req, res) => {
@@ -95,8 +97,15 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/classes", authenticateToken, async (req, res) => {
+    app.get("/classes", async (req, res) => {
       const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/classes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.findOne(query);
       res.send(result);
     });
 
@@ -209,6 +218,27 @@ async function run() {
       const result = await userCollection.updateOne(filter, update);
       res.send(result);
     });
+
+    //paymentSystem
+    app.post("/create-payment-intent", authenticateToken, async (req, res) => {
+      const { price } = req.body;
+      const amount = price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ['card'],
+      });
+    
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post('/payments', authenticateToken, async(req, res) =>{
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+      res.send(result)
+    })
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
