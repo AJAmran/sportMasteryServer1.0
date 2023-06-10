@@ -240,6 +240,13 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/payments/:email', authenticateToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const options = { sort: { date: -1 } };
+      const result = await paymentCollection.find(query, options).toArray();
+      res.send(result);
+    });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
