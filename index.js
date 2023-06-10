@@ -63,31 +63,23 @@ async function run() {
 
     // verify Admin
     const verifyAdmin = async (req, res, next) => {
-      const email = async (req, res, next) => {
-        const email = req.decoded.email;
-        const query = { email: email };
-        const user = await userCollection.findOne(query);
-        if (user?.role !== "admin") {
-          return res
-            .status(403)
-            .send({ error: true, message: "Access Denied" });
-        }
-        next();
-      };
-    };
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
+    }
 
     const verifyInstructor = async (req, res, next) => {
-      const email = async (req, res, next) => {
-        const email = req.decoded.email;
-        const query = { email: email };
-        const user = await userCollection.findOne(query);
-        if (user?.role !== "instructor") {
-          return res
-            .status(403)
-            .send({ error: true, message: "Access Denied" });
-        }
-        next();
-      };
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      if (user?.role !== 'instructor') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
     };
 
     // class activity
@@ -137,13 +129,15 @@ async function run() {
 
     app.put('/classes/:id/reduce-seats', authenticateToken, async (req, res) => {
       const id = req.params.id;      
-        const filter = { _id: new ObjectId(id) };
-        const update = { $inc: { availableSeats: -1 } };    
-        const result = await classCollection.updateOne(filter, update);
-        res.send(result);
+      const filter = { _id: new ObjectId(id) };
+      const update = { 
+        $inc: { availableSeats: -1 },
+        $inc: { studentNumber: 1 }
+      };
+      const options = { upsert: true, returnOriginal: false };
+      const result = await classCollection.findOneAndUpdate(filter, update, options);
+      res.send(result);
     });
-
-
     
 
     //user activity
