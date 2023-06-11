@@ -27,16 +27,13 @@ const secretKey = process.env.SECRET;
 //Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-
   if (!authHeader) {
     return res
       .status(401)
       .send({ error: true, message: "Unauthorized access" });
   }
   const token = authHeader.split(" ")[1];
-
   if (token == null) return res.sendStatus(401);
-
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err) {
       return res
@@ -61,26 +58,31 @@ async function run() {
       res.send({ token });
     });
 
-    // verify Admin
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
-      const query = { email: email }
+      const query = { email: email };
       const user = await userCollection.findOne(query);
-      if (user?.role !== 'admin') {
-        return res.status(403).send({ error: true, message: 'forbidden message' });
-      }
-      next();
-    }
-
-    const verifyInstructor = async (req, res, next) => {
-      const email = req.decoded.email;
-      const query = { email: email }
-      const user = await userCollection.findOne(query);
-      if (user?.role !== 'instructor') {
-        return res.status(403).send({ error: true, message: 'forbidden message' });
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
       }
       next();
     };
+
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden message" });
+      }
+      next();
+    };
+
+    
 
     // class activity
     app.post("/classes", async (req, res) => {
@@ -117,35 +119,43 @@ async function run() {
       res.send(result);
     });
 
-
-    app.post('/classes/:id/feedback', async (req, res) => {
+    app.post("/classes/:id/feedback", async (req, res) => {
       const { id } = req.params;
       const { feedback } = req.body;
-    
+
       try {
         const query = { _id: new ObjectId(id) };
         const update = { $set: { feedback } };
-    
+
         const result = await classCollection.updateOne(query, update);
         res.send(result);
       } catch (error) {
         console.error("Error updating class feedback:", error);
-        res.status(500).send({ error: true, message: "Failed to update class feedback" });
+        res
+          .status(500)
+          .send({ error: true, message: "Failed to update class feedback" });
       }
     });
 
-    app.put('/classes/:id/reduce-seats', authenticateToken, async (req, res) => {
-      const id = req.params.id;      
-      const filter = { _id: new ObjectId(id) };
-      const update = { 
-        $inc: { availableSeats: -1 },
-        $inc: { studentNumber: 1 }
-      };
-      const options = { upsert: true, returnOriginal: false };
-      const result = await classCollection.findOneAndUpdate(filter, update, options);
-      res.send(result);
-    });
-    
+    app.put(
+      "/classes/:id/reduce-seats",
+      authenticateToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const update = {
+          $inc: { availableSeats: -1 },
+          $inc: { studentNumber: 1 },
+        };
+        const options = { upsert: true, returnOriginal: false };
+        const result = await classCollection.findOneAndUpdate(
+          filter,
+          update,
+          options
+        );
+        res.send(result);
+      }
+    );
 
     //user activity
     app.post("/users", async (req, res) => {
@@ -207,6 +217,24 @@ async function run() {
       }
     );
 
+    app.get(
+      "/users/student/:email",
+      authenticateToken,
+      verifyStudent,
+      async (req, res) => {
+        const email = req.params.email;
+
+        if (req.decoded.email !== email) {
+          res.send({ student: false });
+        }
+
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const result = { student: user?.role === "student" };
+        res.send(result);
+      }
+    );
+
     app.patch("/users/admin/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -234,25 +262,25 @@ async function run() {
     //paymentSystem
     app.post("/create-payment-intent", authenticateToken, async (req, res) => {
       const { price } = req.body;
-      const amount = price*100;
+      const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         currency: "usd",
-        payment_method_types: ['card'],
+        payment_method_types: ["card"],
       });
-    
+
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
     });
 
-    app.post('/payments', authenticateToken, async(req, res) =>{
+    app.post("/payments", authenticateToken, async (req, res) => {
       const payment = req.body;
       const result = await paymentCollection.insertOne(payment);
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-    app.get('/payments/:email', authenticateToken, async (req, res) => {
+    app.get("/payments/:email", authenticateToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const options = { sort: { date: -1 } };
