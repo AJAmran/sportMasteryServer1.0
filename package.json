@@ -2,10 +2,12 @@
   "name": "sport-mastery-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "build": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
